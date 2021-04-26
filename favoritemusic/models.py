@@ -25,16 +25,43 @@ class UserSchema(Schema):
 
 
 class Song:
-    def __init__(self, song_id):
-        self.song_id = song_id
+    def __init__(self, **kwargs):
+        self.spotify_id = kwargs['spotify_id']
+        self.song_name = kwargs['song_name']
+        self.album = kwargs['album']
+        self.author = kwargs['author']
 
-    def __repr__(self):
-        return f"<Song(song_id={self.song_id!r})>"
 
+class SpotifySongSchema(Schema):
+    spotify_id = fields.Str()
+    song_name = fields.Str()
+    album = fields.Str()
+    author = fields.Str()
 
-class SongSchema(Schema):
-    song_id = fields.Str()
-
-    @post_load
+    @post_load()
     def make_song(self, data, **kwargs):
-        return Song(**data)
+        return SpotifySong(**data)
+
+
+class SpotifySong:
+    def __init__(self, spotify_id: str,
+                 song_name: str,
+                 album: str,
+                 author: str):
+        self.spotify_id = spotify_id
+        self.song_name = song_name
+        self.album = album
+        self.author = author
+
+
+class SpotifySongSchema(Schema):
+    spotify_id = fields.Str()
+    song_name = fields.Str()
+    album = fields.Str()
+    author = fields.Str()
+
+    @post_load()
+    def make_song(self, data, **kwargs):
+        return SpotifySong(**data)
+
+

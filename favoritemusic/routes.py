@@ -6,8 +6,10 @@ import sqlalchemy
 
 from flask import request, jsonify
 from favoritemusic import app, db
+from favoritemusic.auth import token_required
+from favoritemusic.spotify_client import SpotifyAPI
 from favoritemusic.database_models import Users, Songs
-from favoritemusic.models import User, UserSchema, Song, SongSchema
+from favoritemusic.models import User, UserSchema, SpotifySong, SpotifySongSchema
 from marshmallow.exceptions import ValidationError
 from sqlalchemy.exc import IntegrityError
 
@@ -64,4 +66,54 @@ def login():
                             datetime.timedelta(minutes=30)},
                            app.config['SECRET_KEY'])
         return jsonify({"token": token})
+
+
+@app.route('/search', methods=['POST'])
+def search():
+    data = request.get_json()
+
+    user_id = '64732887ea944a47b676ce7448d7b9be'
+    user_secret = '4808aa6cf15a4016bd408bafb0489a6c'
+
+    spotify = SpotifyAPI(user_id, user_secret)
+    data = spotify.search(query=data['name'])
+
+    spotify_id = data['tracks']['items'][0]['id']
+    song_name = data['tracks']['items'][0]['name']
+    album = data['tracks']['items'][0]['album']['name']
+    author = data['tracks']['items'][0]['album']['artists'][0]['name']
+
+    song = SpotifySong(spotify_id=spotify_id,
+                       song_name=song_name,
+                       album=album,
+                       author=author)
+    schema = SpotifySongSchema()
+    result = schema.dump(song)
+    return result
+
+
+@app.route('/add_song', methods=['POST'])
+@token_required
+def add_song(current_user):
+    data = request.get_json()
+
+    try:
+        song = SpotifySongSchema().load(data=data)
+    except ValidationError as err:
+        return {"message": err.messages}
+    except TypeError:
+        return {"message": "Invalid input"}
+
+    loading_song = Songs(spotify_id=song.spotify_id,
+                         song_name=song.song_name,
+                         album=song.album,
+                         author=song.author,
+                         user_id=current_user.id)
+
+    db.session.add(loading_song)
+
+    db.session.commit()
+
+    return {"message": "Successful operation"}
+
 
