@@ -1,5 +1,6 @@
 import bcrypt
 import datetime
+import os
 import psycopg2
 import jwt
 import sqlalchemy
@@ -72,10 +73,7 @@ def login():
 def search():
     data = request.get_json()
 
-    user_id = '64732887ea944a47b676ce7448d7b9be'
-    user_secret = '4808aa6cf15a4016bd408bafb0489a6c'
-
-    spotify = SpotifyAPI(user_id, user_secret)
+    spotify = SpotifyAPI(os.environ['USER_ID'], os.environ['USER_SECRET'])
     data = spotify.search(query=data['name'])
 
     spotify_id = data['tracks']['items'][0]['id']
